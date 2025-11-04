@@ -1,0 +1,2 @@
+11-01 21:18:39.344  8676  8692 I TestRunner: started: useAppContext(com.longnotes.app.ExampleInstrumentedTest)
+11-01 21:18:39.347  8676  8692 I TestRunner: finished: useAppContext(com.longnotes.app.ExampleInstrumentedTest)
