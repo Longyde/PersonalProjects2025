@@ -1,0 +1,6 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Material 3 app theme -->
+    <style name="Theme.LongNotes" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Leave empty for now; we just need a valid M3 theme -->
+    </style>
+</resources>
