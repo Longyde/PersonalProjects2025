@@ -6,6 +6,8 @@ import com.longnotes.app.data.AppDatabase
 import com.longnotes.app.data.ChecklistDao
 import com.longnotes.app.data.FolderDao
 import com.longnotes.app.data.MIGRATION_1_2
+import com.longnotes.app.data.MIGRATION_2_3
+import com.longnotes.app.data.MIGRATION_3_4
 import com.longnotes.app.data.NoteDao
 import dagger.Module
 import dagger.Provides
@@ -24,7 +26,7 @@ class DatabaseModule {
             application,
             AppDatabase::class.java,
             "long_notes.db"
-        ).addMigrations(MIGRATION_1_2).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
     }
 
     @Provides

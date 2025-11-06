@@ -105,14 +105,28 @@ class EditNoteViewModel @Inject constructor(
 
     fun saveNote() {
         viewModelScope.launch {
-            val savedNoteId = if (noteId > 0) {
-                notesRepository.update(_note.value)
-                noteId
+            val note = _note.value
+            val checklist = _checklistItems.value
+
+            if (noteId > 0) {
+                // Always save an existing note
+                notesRepository.update(note)
+                if (note.type == NoteType.CHECKLIST) {
+                    notesRepository.replaceChecklist(noteId, checklist)
+                }
             } else {
-                notesRepository.add(_note.value)
-            }
-            if (_note.value.type == NoteType.CHECKLIST) {
-                notesRepository.replaceChecklist(savedNoteId, _checklistItems.value)
+                // For a new note, only save if it's not empty
+                val isTextNoteEmpty = note.type == NoteType.TEXT && note.content.isBlank()
+                val isChecklistEmpty = note.type == NoteType.CHECKLIST && checklist.all { it.text.isBlank() }
+
+                if (note.title.isBlank() && (isTextNoteEmpty || isChecklistEmpty)) {
+                    return@launch // Do not save empty note
+                }
+
+                val newNoteId = notesRepository.add(note)
+                if (note.type == NoteType.CHECKLIST) {
+                    notesRepository.replaceChecklist(newNoteId, checklist)
+                }
             }
         }
     }

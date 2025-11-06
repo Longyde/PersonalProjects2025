@@ -6,7 +6,7 @@ import androidx.room.TypeConverters
 
 @Database(
     entities = [Note::class, Folder::class, ChecklistItem::class],
-    version = 2,
+    version = 4, // Final stable version
     exportSchema = false
 )
 @TypeConverters(Converters::class)

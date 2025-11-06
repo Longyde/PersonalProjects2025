@@ -1,6 +1,10 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Material 3 app theme -->
-    <style name="Theme.LongNotes" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Leave empty for now; we just need a valid M3 theme -->
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#E53935</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.LongNotes</item>
     </style>
+
+    <style name="Theme.LongNotes" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

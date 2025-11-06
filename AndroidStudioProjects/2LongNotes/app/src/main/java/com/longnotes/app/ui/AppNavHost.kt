@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.longnotes.app.ui.calendar.CalendarScreen
 import com.longnotes.app.ui.edit.EditNoteScreen
 import com.longnotes.app.ui.folders.ManageFoldersScreen
 import com.longnotes.app.ui.main.MainScreen
@@ -24,20 +25,40 @@ fun AppNavHost() {
                 },
                 onManageFoldersClick = {
                     navController.navigate("folders")
+                },
+                onCalendarClick = {
+                    navController.navigate("calendar")
                 }
             )
         }
         composable(
-            route = "edit?noteId={noteId}",
-            arguments = listOf(navArgument("noteId") { 
-                type = NavType.LongType
-                defaultValue = 0L
-            })
+            route = "edit?noteId={noteId}&reminderDate={reminderDate}",
+            arguments = listOf(
+                navArgument("noteId") { 
+                    type = NavType.LongType
+                    defaultValue = 0L
+                },
+                navArgument("reminderDate") {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                }
+            )
         ) {
             EditNoteScreen(onNavigateBack = { navController.popBackStack() })
         }
         composable("folders") {
             ManageFoldersScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable("calendar") {
+            CalendarScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNoteClick = { noteId ->
+                    navController.navigate("edit?noteId=$noteId")
+                },
+                onAddNoteForDate = { dateMillis ->
+                    navController.navigate("edit?reminderDate=$dateMillis")
+                }
+            )
         }
     }
 }

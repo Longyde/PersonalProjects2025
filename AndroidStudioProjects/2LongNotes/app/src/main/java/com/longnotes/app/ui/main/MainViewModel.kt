@@ -24,13 +24,18 @@ class MainViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
+    private val _sortMode = MutableStateFlow(SortMode.MODIFIED_TIME)
+    val sortMode: StateFlow<SortMode> = _sortMode.asStateFlow()
+
     private val _viewMode = MutableStateFlow(ViewMode.LIST)
     val viewMode: StateFlow<ViewMode> = _viewMode.asStateFlow()
 
     val folders: StateFlow<List<Folder>> = notesRepository.folders()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val notes: StateFlow<List<Note>> = combine(_searchQuery, _selectedFolder) { query, folder ->
+    val notes: StateFlow<List<Note>> = combine(
+        searchQuery, selectedFolder, sortMode
+    ) { query, folder, sort ->
         val notesFlow = if (query.isNotBlank()) {
             notesRepository.search(query)
         } else {
@@ -40,7 +45,16 @@ class MainViewModel @Inject constructor(
                 notesRepository.notesInFolder(folder.id)
             }
         }
-        notesFlow
+        notesFlow.map { notes ->
+            val (pinnedNotes, unpinnedNotes) = notes.partition { it.pinned }
+            val sortedUnpinnedNotes = when (sort) {
+                SortMode.MODIFIED_TIME -> unpinnedNotes.sortedByDescending { it.updatedAt }
+                SortMode.CREATED_TIME -> unpinnedNotes.sortedByDescending { it.createdAt }
+                SortMode.ALPHABETICAL -> unpinnedNotes.sortedBy { it.title }
+                SortMode.COLOR -> unpinnedNotes.sortedBy { it.color.ordinal }
+            }
+            pinnedNotes + sortedUnpinnedNotes
+        }
     }.flatMapLatest { it }
         .stateIn(
             scope = viewModelScope,
@@ -58,6 +72,10 @@ class MainViewModel @Inject constructor(
 
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
+    }
+
+    fun onSortModeChange(sortMode: SortMode) {
+        _sortMode.value = sortMode
     }
 
     fun onViewModeChange(viewMode: ViewMode) {

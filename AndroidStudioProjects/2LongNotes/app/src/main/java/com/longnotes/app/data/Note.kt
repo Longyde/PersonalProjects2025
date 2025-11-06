@@ -13,6 +13,7 @@ data class Note(
     val folderId: Long? = null,
     val pinned: Boolean = false,
     val pinnedToNotification: Boolean = false,
+    val reminderDate: Long? = null, // For v3 migration
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

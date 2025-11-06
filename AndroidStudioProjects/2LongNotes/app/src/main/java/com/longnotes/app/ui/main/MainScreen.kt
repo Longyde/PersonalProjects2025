@@ -29,17 +29,21 @@ fun MainScreen(
     viewModel: MainViewModel = hiltViewModel(),
     onNoteClick: (Long) -> Unit,
     onNewNoteClick: () -> Unit,
-    onManageFoldersClick: () -> Unit
+    onManageFoldersClick: () -> Unit,
+    onCalendarClick: () -> Unit
 ) {
     val notes by viewModel.notes.collectAsState()
     val folders by viewModel.folders.collectAsState()
     val selectedFolder by viewModel.selectedFolder.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val sortMode by viewModel.sortMode.collectAsState()
     val viewMode by viewModel.viewMode.collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var isSearchActive by remember { mutableStateOf(false) }
-    var showViewMenu by remember { mutableStateOf(false) }
+    var showOptionsMenu by remember { mutableStateOf(false) }
+    var showViewSubMenu by remember { mutableStateOf(false) }
+    var showFilterDialog by remember { mutableStateOf(false) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -105,36 +109,118 @@ fun MainScreen(
                             IconButton(onClick = { isSearchActive = true }) {
                                 Icon(Icons.Default.Search, contentDescription = "Search")
                             }
-                            IconButton(onClick = { showViewMenu = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "View Options")
-                            }
-                            DropdownMenu(expanded = showViewMenu, onDismissRequest = { showViewMenu = false }) {
-                                ViewMode.values().forEach { mode ->
-                                    DropdownMenuItem(text = { Text(mode.name) }, onClick = { 
-                                        viewModel.onViewModeChange(mode)
-                                        showViewMenu = false 
-                                    })
+                            Box {
+                                IconButton(onClick = { showOptionsMenu = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                                }
+                                DropdownMenu(
+                                    expanded = showOptionsMenu,
+                                    onDismissRequest = { showOptionsMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("View") },
+                                        onClick = {
+                                            showOptionsMenu = false
+                                            showViewSubMenu = true
+                                        }
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = showViewSubMenu,
+                                    onDismissRequest = { showViewSubMenu = false }
+                                ) {
+                                    ViewMode.values().forEach { mode ->
+                                        DropdownMenuItem(
+                                            text = { Text(mode.title) },
+                                            onClick = {
+                                                viewModel.onViewModeChange(mode)
+                                                showViewSubMenu = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
                     )
                 }
             },
-            floatingActionButton = {
-                 FloatingActionButton(onClick = onNewNoteClick) {
+        ) { padding ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.padding(padding)) {
+                    FilterBar(onClick = { showFilterDialog = true })
+
+                    if (showFilterDialog) {
+                        FilterDialog(
+                            sortMode = sortMode,
+                            onDismiss = { showFilterDialog = false },
+                            onSortChange = { viewModel.onSortModeChange(it) }
+                        )
+                    }
+
+                    when (viewMode) {
+                        ViewMode.LIST -> NoteList(notes, viewModel, onNoteClick, viewMode)
+                        ViewMode.DETAILS -> NoteList(notes, viewModel, onNoteClick, viewMode)
+                        ViewMode.GRID -> NoteGrid(notes, viewModel, onNoteClick, 3, viewMode)
+                        ViewMode.LARGE_GRID -> NoteGrid(notes, viewModel, onNoteClick, 2, viewMode)
+                    }
+                }
+
+                FloatingActionButton(
+                    onClick = onCalendarClick,
+                    modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)
+                ) {
+                    Icon(Icons.Default.DateRange, contentDescription = "Calendar")
+                }
+
+                FloatingActionButton(
+                    onClick = onNewNoteClick,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "New Note")
                 }
             }
-        ) { padding ->
-            val contentModifier = Modifier.padding(padding)
-            when (viewMode) {
-                ViewMode.LIST -> NoteList(notes, viewModel, onNoteClick, viewMode, contentModifier)
-                ViewMode.DETAILS -> NoteList(notes, viewModel, onNoteClick, viewMode, contentModifier)
-                ViewMode.GRID -> NoteGrid(notes, viewModel, onNoteClick, 3, viewMode, contentModifier)
-                ViewMode.LARGE_GRID -> NoteGrid(notes, viewModel, onNoteClick, 2, viewMode, contentModifier)
-            }
         }
     }
+}
+
+@Composable
+fun FilterBar(onClick: () -> Unit) {
+    Column(modifier = Modifier.clickable(onClick = onClick)) {
+        Divider()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp, horizontal = 16.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "Filters", style = MaterialTheme.typography.titleSmall)
+        }
+        Divider()
+    }
+}
+
+@Composable
+fun FilterDialog(
+    sortMode: SortMode,
+    onDismiss: () -> Unit,
+    onSortChange: (SortMode) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sort by") },
+        text = {
+            Column {
+                SortMode.values().forEach { mode ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = sortMode == mode, onClick = { onSortChange(mode) })
+                        Text(mode.title)
+                    }
+                }
+            }
+        },
+        confirmButton = { Button(onClick = onDismiss) { Text("Done") } }
+    )
 }
 
 @Composable
@@ -154,8 +240,8 @@ fun SearchBar(query: String, onQueryChange: (String) -> Unit, onClose: () -> Uni
 }
 
 @Composable
-fun NoteList(notes: List<Note>, viewModel: MainViewModel, onNoteClick: (Long) -> Unit, viewMode: ViewMode, modifier: Modifier = Modifier) {
-    LazyColumn(modifier = modifier) {
+fun NoteList(notes: List<Note>, viewModel: MainViewModel, onNoteClick: (Long) -> Unit, viewMode: ViewMode) {
+    LazyColumn {
         items(notes) { note ->
             val checklistItems by viewModel.getChecklistItems(note.id).collectAsState(initial = emptyList())
             NoteItem(
@@ -171,8 +257,8 @@ fun NoteList(notes: List<Note>, viewModel: MainViewModel, onNoteClick: (Long) ->
 }
 
 @Composable
-fun NoteGrid(notes: List<Note>, viewModel: MainViewModel, onNoteClick: (Long) -> Unit, cells: Int, viewMode: ViewMode, modifier: Modifier = Modifier) {
-    LazyVerticalGrid(columns = GridCells.Fixed(cells), modifier = modifier) {
+fun NoteGrid(notes: List<Note>, viewModel: MainViewModel, onNoteClick: (Long) -> Unit, cells: Int, viewMode: ViewMode) {
+    LazyVerticalGrid(columns = GridCells.Fixed(cells)) {
         items(notes) { note ->
             val checklistItems by viewModel.getChecklistItems(note.id).collectAsState(initial = emptyList())
             NoteItem(

@@ -1,5 +1,6 @@
 package com.longnotes.app.ui.edit
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,8 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.longnotes.app.data.ChecklistItem
 import com.longnotes.app.data.NoteColor
 import com.longnotes.app.data.NoteType
@@ -33,20 +37,35 @@ fun EditNoteScreen(
     val note by viewModel.note.collectAsState()
     val folders by viewModel.folders.collectAsState()
     val checklistItems by viewModel.checklistItems.collectAsState()
-    val scope = rememberCoroutineScope()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                viewModel.saveNote()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    BackHandler { onNavigateBack() }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(if (note.id > 0) "Edit Note" else "New Note") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
                 actions = {
-                    IconButton(onClick = {
-                        scope.launch {
-                            viewModel.saveNote()
-                            onNavigateBack()
-                        }
-                    }) {
-                        Icon(Icons.Default.Done, contentDescription = "Save Note")
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.Done, contentDescription = "Done")
                     }
                 }
             )
